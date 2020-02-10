@@ -91,6 +91,12 @@ def main():
         help="Total number of training epochs to perform.",
     )
     parser.add_argument(
+        "--batch_size",
+        default=10,
+        type=int,
+        help="Total number of training epochs to perform.",
+    )
+    parser.add_argument(
         "--warmup_proportion",
         default=0.1,
         type=float,
@@ -256,9 +262,9 @@ def main():
 
     # train, val, test = random_split(dataset, [100, 100, 800])
 
-    train_dataloader = DataLoader(train, batch_size=10, shuffle=True)
-    val_dataloader = DataLoader(val, batch_size=10, shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=10, shuffle=False)
+    train_dataloader = DataLoader(train, batch_size=args.batch_size, shuffle=True)
+    val_dataloader = DataLoader(val, batch_size=args.batch_size, shuffle=True)
+    test_dataloader = DataLoader(test, batch_size=args.batch_size, shuffle=False)
  
     # task_batch_size, task_num_iters, task_ids, task_datasets_train, task_datasets_val, \
     #         task_dataloader_train, task_dataloader_val = LoadDatasets(args, task_cfg, args.tasks.split('-'))
