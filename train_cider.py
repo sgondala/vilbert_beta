@@ -346,8 +346,6 @@ def main():
     if default_gpu:
         print(len(list(model.named_parameters())), len(optimizer_grouped_parameters))
 
-    # max_num_iter = max(task_num_iters.values())
-    # max_batch_size = max(task_batch_size.values())
     num_train_optimization_steps = (
         (200000//256) * args.num_train_epochs
     )
@@ -391,12 +389,6 @@ def main():
             return pow(0.1, np.sum(lr_reduce_list <= epoch))
         lr_scheduler = LambdaLR(optimizer, lr_lambda=lr_lambda_fun)
 
-    if default_gpu:
-        print("***** Running training *****")
-        # print("  Num Iters: ", task_num_iters)
-        # print("  Batch size: ", task_batch_size)
-        # print("  Num steps: %d" %num_train_optimization_steps)
-
     criterion = nn.MSELoss()
     i = 0
     j = 0
@@ -429,15 +421,17 @@ def main():
             loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
             writer.add_scalar('Val_loss', loss, j)
         
-        torch.save(model, args.output_dir + "/model-" + str(epochId) + '.pth')
+        # Save a trained model
+        model_to_save = (
+            model.module if hasattr(model, "module") else model
+        )  # Only save the model it-self
 
-        # if args.lr_scheduler == 'automatic':
-        #     lr_scheduler.step(ave_score)
-        #     logger.info("best average score is %3f" %lr_scheduler.best)
-        # else:
+        if not os.path.exists(args.output_dir):
+            os.makedirs(args.output_dir)
+        output_model_file = os.path.join(args.output_dir, "pytorch_model_" + str(epochId) + ".bin")
+        torch.save(model_to_save.state_dict(), output_model_file)
+
         lr_scheduler.step()
-
-    # tbLogger.txt_close()
     
 if __name__ == "__main__":
     main()

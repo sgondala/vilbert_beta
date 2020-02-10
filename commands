@@ -29,7 +29,7 @@ from torch.optim.lr_scheduler import LambdaLR, ReduceLROnPlateau
 import vilbert.utils as utils
 import torch.distributed as dist
 
-from retreival_dataset import CiderDataset
+from vilbert.datasets.retreival_dataset import CiderDataset
 
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import random_split
@@ -61,7 +61,11 @@ python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin -
 
 Train on nocaps 
 
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 256
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json  --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 20
+
+Eval on nocaps 
+
+python eval_cider.py --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 256
 
 
 Train on coco full 
