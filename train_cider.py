@@ -392,6 +392,8 @@ def main():
     criterion = nn.MSELoss()
     i = 0
     j = 0
+
+    correlation_values = []
     # initialize the data iteration.
     for epochId in tqdm(range(args.num_train_epochs), desc="Epoch"):
         model.train()
@@ -411,15 +413,23 @@ def main():
 
         model.eval()
         # when run evaluate, we run each task sequentially. 
+
+        actual_values = []
+        predicted_values = []
         for batch in val_dataloader:
             j += 1
             batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
             features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
             _, vil_logit, _, _, _, _, _ = \
                 model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
+            actual_values += y.tolist()
+            predicted_values += vil_logit.tolist()    
             loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
             writer.add_scalar('Val_loss', loss, j)
-        
+
+        correlation_here = np.corrcoef(np.array(actual_values), np.array(predicted_values))[0,1]
+        correlation_values.append(correlation_here)
+
         # Save a trained model
         model_to_save = (
             model.module if hasattr(model, "module") else model
@@ -432,5 +442,7 @@ def main():
 
         lr_scheduler.step()
     
+    print(correlation_values)
+
 if __name__ == "__main__":
     main()

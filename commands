@@ -44,7 +44,12 @@ dataset = CiderDataset('data/nocaps_captions.json', '/srv/share2/sgondala/tmp/tr
 
 from vilbert.vilbert import BertConfig
 config = BertConfig.from_json_file('config/bert_base_6layer_6conect.json')
-model = VILBertForVLTasks(config ,1)
+
+
+# model = VILBertForVLTasks(config ,1)
+from vilbert.vilbert import VILBertForVLTasks
+model = VILBertForVLTasks.from_pretrained('checkpoints/temp/pytorch_model_1.bin', config, num_labels=1, default_gpu=True)
+
 _, vil_logit, _, _, _, _, _ = model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
 
 
@@ -61,21 +66,21 @@ python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin -
 
 Train on nocaps 
 
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json  --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 20
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json  --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 20 --num_train_epochs 3
 
 Eval on nocaps 
 
-python eval_cider.py --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 256
+python eval_cider.py --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 256
 
 
 Train on coco full 
 
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_full/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --captions_path data/coco_caps_all_images_2_models.json --cider_path data/coco_caps_all_images_2_models_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_full_checkpoint_9/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --captions_path data/coco_caps_all_images_2_models.json --cider_path data/coco_caps_all_images_2_models_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv
 
 
 Train on coco partial 
 
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 10 --captions_path data/coco_generated_captions.json --cider_path data/coco_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/partial_coco_checkpoint_9/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 10 --captions_path data/coco_generated_captions.json --cider_path data/coco_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv 
 
 
 # dataset = CiderDataset('data/coco_caps_all_images_2_models.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv', 'data/coco_caps_all_images_2_models_cider_scores.json', tokenizer)
