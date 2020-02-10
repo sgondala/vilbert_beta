@@ -1,0 +1,5 @@
+runs/
+models/
+checkpoints/
+pretrained_weights/
+*pycache*

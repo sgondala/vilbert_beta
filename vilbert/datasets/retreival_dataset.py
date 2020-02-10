@@ -13,6 +13,7 @@ from ._image_features_reader import ImageFeaturesH5Reader
 import jsonlines
 import sys
 import pdb
+import pickle 
 
 def assert_eq(real, expected):
     assert real == expected, "%s (true) vs %s (expected)" % (real, expected)
@@ -403,6 +404,12 @@ class HybridLoader:
         
         self.id2dict = {}
         cached_file = filepath[:-4] + "__" + ext +"__cached"
+
+        if ext == 'acc': #Very temporary bad hack
+            cached_file = cached_file + '.pkl'
+            self.id2dict = pickle.load(open(cached_file, 'rb'), encoding="latin1")
+            return
+
         if os.path.exists(cached_file):
             print("Loading saved dict ", cached_file)
             self.id2dict = torch.load(cached_file)
@@ -446,9 +453,12 @@ class CiderDataset(Dataset):
         This will add caption_tokens in each entry of the dataset.
         -1 represents nil, and should be treated as padding_idx in embedding.
         """
-        tokens = self._tokenizer.encode(caption)
-        tokens = tokens[: self._max_seq_length - 2]
-        tokens = self._tokenizer.add_special_tokens_single_sentence(tokens)
+        
+        sentence_tokens = self._tokenizer.tokenize(caption)
+        sentence_tokens = ["[CLS]"] + sentence_tokens + ["[SEP]"]
+
+        tokens = [self._tokenizer.vocab.get(w, self._tokenizer.vocab["[UNK]"]) for w in sentence_tokens]
+        tokens = tokens[:self._max_seq_length]
 
         segment_ids = [0] * len(tokens)
         input_mask = [1] * len(tokens)

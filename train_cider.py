@@ -29,9 +29,8 @@ from torch.optim.lr_scheduler import LambdaLR, ReduceLROnPlateau
 import vilbert.utils as utils
 import torch.distributed as dist
 
-from retreival_dataset import CiderDataset
+from vilbert.datasets.retreival_dataset import CiderDataset
 
-from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import random_split
 import numpy as np
 from pytorch_pretrained_bert.tokenization import BertTokenizer
@@ -45,7 +44,6 @@ torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
 
 writer = SummaryWriter()
-
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
@@ -171,6 +169,17 @@ def main():
     parser.add_argument(
         "--compact", action="store_true", help="whether use compact vilbert model."
     )
+    parser.add_argument(
+        "--captions_path", default='', type=str, help="1-2-3... training task separate by -"
+    )
+    parser.add_argument(
+        "--cider_path", default='', type=str, help="1-2-3... training task separate by -"
+    )
+    parser.add_argument(
+        "--tsv_path", default='', type=str, help="1-2-3... training task separate by -"
+    )
+
+
 
     args = parser.parse_args()
     assert len(args.output_dir) > 0
@@ -234,20 +243,22 @@ def main():
             print(config, file=f)
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
-    dataset = CiderDataset(
-        'data/coco_generated_captions.json', 
-        '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv', 
-        'data/coco_cider_scores.json', 
-        tokenizer,
-        )
+    dataset = CiderDataset(args.captions_path, args.tsv_path, args.cider_path, tokenizer)
+
+    # dataset = CiderDataset('data/coco_caps_all_images_2_models.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv', 'data/coco_caps_all_images_2_models_cider_scores.json', tokenizer)
+
+    # dataset = CiderDataset('data/nocaps_captions.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv', 'data/nocaps_cider_scores.json', tokenizer)
 
     length_of_data = len(dataset)
+    length_of_val = length_of_data // 10
 
-    train, val, test = random_split(dataset, [length_of_data - 20000, 5000, 15000])
+    train, val, test = random_split(dataset, [length_of_data - 2 * length_of_val, length_of_val, length_of_val])
 
-    train_dataloader = DataLoader(train, batch_size=256, shuffle=True)
-    val_dataloader = DataLoader(val, batch_size=256, shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=256, shuffle=False)
+    # train, val, test = random_split(dataset, [100, 100, 800])
+
+    train_dataloader = DataLoader(train, batch_size=10, shuffle=True)
+    val_dataloader = DataLoader(val, batch_size=10, shuffle=True)
+    test_dataloader = DataLoader(test, batch_size=10, shuffle=False)
  
     # task_batch_size, task_num_iters, task_ids, task_datasets_train, task_datasets_val, \
     #         task_dataloader_train, task_dataloader_val = LoadDatasets(args, task_cfg, args.tasks.split('-'))
@@ -277,7 +288,6 @@ def main():
             raise ImportError(
                 "Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training."
             )
-        model = DDP(model, delay_allreduce=True)
 
     elif n_gpu > 1:
         model = torch.nn.DataParallel(model)
@@ -389,12 +399,14 @@ def main():
         model.train()
         for batch in train_dataloader:
             i += 1
-            batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
+            if not args.no_cuda:
+                batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
             features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
             _, vil_logit, _, _, _, _, _ = \
                 model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
-            loss = torch.sqrt(criterion(vil_logit, y.to(device)))
-            writer.add_scalar('Train loss', loss, i)
+            loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
+            print(loss)
+            writer.add_scalar('Train_loss', loss, i)
             loss.backward()
             optimizer.step()
             model.zero_grad()
@@ -408,10 +420,10 @@ def main():
             features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
             _, vil_logit, _, _, _, _, _ = \
                 model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
-            loss = torch.sqrt(criterion(vil_logit, y.to(device)))
-            writer.add_scalar('Val loss', loss, j)
+            loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
+            writer.add_scalar('Val_loss', loss, j)
         
-        torch.save(model, args.save_path + "/model-" + str(epochId) + '.pth')
+        torch.save(model, args.output_dir + "/model-" + str(epochId) + '.pth')
 
         # if args.lr_scheduler == 'automatic':
         #     lr_scheduler.step(ave_score)
