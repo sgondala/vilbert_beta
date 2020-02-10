@@ -257,48 +257,42 @@ def main():
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
-    if args.baseline:
-        model = BaseBertForVLTasks.from_pretrained(
-            args.from_pretrained, config, num_labels=1, default_gpu=default_gpu
-            )
-    else:
-        model = VILBertForVLTasks.from_pretrained(
-            args.from_pretrained, config, num_labels=1, default_gpu=default_gpu
-            )
+    model_list = ['checkpoints/partial_coco/model-' + str(i) + '.pth' for i in range(10)]
 
-    model.to(device)
-    if args.local_rank != -1:
-        try:
-            from apex.parallel import DistributedDataParallel as DDP
-        except ImportError:
-            raise ImportError(
-                "Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training."
-            )
+    for model_name in model_list:
+        model = VILBertForVLTasks.from_pretrained(model_name, config, num_labels=1, default_gpu=default_gpu)
+        model.to(device)
+        if args.local_rank != -1:
+            try:
+                from apex.parallel import DistributedDataParallel as DDP
+            except ImportError:
+                raise ImportError(
+                    "Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training."
+                )
 
-    elif n_gpu > 1:
-        model = torch.nn.DataParallel(model)
+        elif n_gpu > 1:
+            model = torch.nn.DataParallel(model)
 
-    i = 0
-    j = 0
-    
-    # initialize the data iteration.
-    actual_values = []
-    predicted_values = []
-    image_ids_list = []
+        i = 0
+        
+        # initialize the data iteration.
+        actual_values = []
+        predicted_values = []
+        image_ids_list = []
 
-    model.eval()
-    for batch in val_dataloader:
-        i += 1
-        if not args.no_cuda:
-            batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
-        features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
-        _, vil_logit, _, _, _, _, _ = \
-            model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
-        actual_values += y.tolist()
-        predicted_values += vil_logit.tolist()
-        image_ids_list += image_id.tolist()
-    
-    print("Total ", np.corrcoef(np.array(actual_values), np.array(predicted_values)))
+        model.eval()
+        for batch in val_dataloader:
+            i += 1
+            if not args.no_cuda:
+                batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
+            features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
+            _, vil_logit, _, _, _, _, _ = \
+                model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
+            actual_values += y.tolist()
+            predicted_values += vil_logit.tolist()
+            image_ids_list += image_id.tolist()
+        print("Model Name ", model_name)
+        print("Values ", np.corrcoef(np.array(actual_values), np.array(predicted_values)))
 
 if __name__ == "__main__":
     main()
