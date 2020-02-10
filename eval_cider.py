@@ -257,7 +257,7 @@ def main():
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
-    model_list = ['checkpoints/partial_coco/model-' + str(i) + '.pth' for i in range(10)]
+    # model_list = ['checkpoints/partial_coco/model-' + str(i) + '.pth' for i in range(10)]
 
     for model_name in model_list:
         model = VILBertForVLTasks.from_pretrained(
