@@ -403,7 +403,6 @@ def main():
             _, vil_logit, _, _, _, _, _ = \
                 model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
             loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
-            print(loss)
             writer.add_scalar('Train_loss', loss, i)
             loss.backward()
             optimizer.step()

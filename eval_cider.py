@@ -260,7 +260,8 @@ def main():
     model_list = ['checkpoints/partial_coco/model-' + str(i) + '.pth' for i in range(10)]
 
     for model_name in model_list:
-        model = VILBertForVLTasks.from_pretrained(model_name, config, num_labels=1, default_gpu=default_gpu)
+        model = torch.load(model_name)
+# model = VILBertForVLTasks.from_pretrained(model_name, config, num_labels=1, default_gpu=default_gpu)
         model.to(device)
         if args.local_rank != -1:
             try:
