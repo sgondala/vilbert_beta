@@ -1,86 +1,25 @@
-import argparse
-import json
-import logging
-import os
-import random
-from io import open
-import numpy as np
-
-from tensorboardX import SummaryWriter
-from tqdm import tqdm
-from bisect import bisect
-import yaml
-from easydict import EasyDict as edict
-
-import pdb
-import sys
-import torch
-import torch.nn.functional as F
-import torch.nn as nn
-
-from pytorch_pretrained_bert.optimization import WarmupLinearSchedule
-
-# from parallel.parallel import DataParallelModel, DataParallelCriterion
-
-from vilbert.task_utils import LoadDatasets, LoadLosses, ForwardModelsTrain, ForwardModelsVal
-from vilbert.optimization import BertAdam, Adam, Adamax
-from torch.optim.lr_scheduler import LambdaLR, ReduceLROnPlateau
-
-import vilbert.utils as utils
-import torch.distributed as dist
-
-from vilbert.datasets.retreival_dataset import CiderDataset
-
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import random_split
-import numpy as np
-from pytorch_pretrained_bert.tokenization import BertTokenizer
-from torch.utils.data import DataLoader
-
-from vilbert.datasets.retreival_dataset import CiderDataset
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-dataset = CiderDataset('data/nocaps_captions.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv', 'data/nocaps_cider_scores.json', tokenizer)
-
-
-from vilbert.vilbert import BertConfig
-config = BertConfig.from_json_file('config/bert_base_6layer_6conect.json')
-
-
-# model = VILBertForVLTasks(config ,1)
-from vilbert.vilbert import VILBertForVLTasks
-model = VILBertForVLTasks.from_pretrained('checkpoints/temp/pytorch_model_1.bin', config, num_labels=1, default_gpu=True)
-
-_, vil_logit, _, _, _, _, _ = model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
-
-
-get pretrained weight
-
-
-TODO : 
-
-First train with nocaps and see if everything is right
-Then change details to coco 
-
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --no_cuda
-
-
 Train on nocaps 
 
 python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json  --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 20 --num_train_epochs 3
 
 Eval on nocaps 
 
-python eval_cider.py --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 256
+python eval_cider.py --output_dir checkpoints/temp/ --from_pretrained checkpoints/coco_full_checkpoint_9/pytorch_model_1.bin --config_file config/bert_base_6layer_6conect.json --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv
+
+
+Eval on coco 
+
+python eval_cider.py --output_dir checkpoints/temp/ --from_pretrained checkpoints/coco_full_checkpoint_9/pytorch_model_1.bin --config_file config/bert_base_6layer_6conect.json --captions_path data/coco_caps_all_images_2_models.json --cider_path data/coco_caps_all_images_2_models_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv
 
 
 Train on coco full 
 
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_full_checkpoint_9/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --captions_path data/coco_caps_all_images_2_models.json --cider_path data/coco_caps_all_images_2_models_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_full_checkpoint_9_feb10_13_15/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 3 --captions_path data/coco_caps_all_images_2_models.json --cider_path data/coco_caps_all_images_2_models_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv
 
 
 Train on coco partial 
 
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/partial_coco_checkpoint_9/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 10 --captions_path data/coco_generated_captions.json --cider_path data/coco_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv 
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/partial_coco_checkpoint_9_feb10_1357/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 10 --captions_path data/coco_generated_captions.json --cider_path data/coco_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv --batch_size 20
 
 
 # dataset = CiderDataset('data/coco_caps_all_images_2_models.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv', 'data/coco_caps_all_images_2_models_cider_scores.json', tokenizer)
