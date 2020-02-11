@@ -245,6 +245,7 @@ def main():
     tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
     dataset = CiderDataset(args.captions_path, args.tsv_path, args.cider_path, tokenizer)
 
+    '''
     length_of_data = len(dataset)
     length_of_val = length_of_data // 10
 
@@ -253,15 +254,18 @@ def main():
     train_dataloader = DataLoader(train, batch_size=10, shuffle=True)
     val_dataloader = DataLoader(val, batch_size=10, shuffle=True)
     test_dataloader = DataLoader(test, batch_size=10, shuffle=False)
- 
+    '''
+    
+    val_dataloader = DataLoader(dataset, batch_size=10,shuffle=False)
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
     # model_list = ['checkpoints/partial_coco/model-' + str(i) + '.pth' for i in range(10)]
+    model_list = [1]
 
     for model_name in model_list:
         model = VILBertForVLTasks.from_pretrained(
-            args.from_pretrained, config, num_labels=num_labels, default_gpu=default_gpu
+            args.from_pretrained, config, num_labels=1, default_gpu=default_gpu
             )
 # model = VILBertForVLTasks.from_pretrained(model_name, config, num_labels=1, default_gpu=default_gpu)
         model.to(device)
@@ -292,7 +296,7 @@ def main():
             _, vil_logit, _, _, _, _, _ = \
                 model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
             actual_values += y.tolist()
-            predicted_values += vil_logit.tolist()
+            predicted_values += vil_logit.squeeze(-1).tolist()
             image_ids_list += image_id.tolist()
         print("Model Name ", model_name)
         print("Values ", np.corrcoef(np.array(actual_values), np.array(predicted_values)))

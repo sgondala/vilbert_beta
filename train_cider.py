@@ -423,12 +423,13 @@ def main():
             _, vil_logit, _, _, _, _, _ = \
                 model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
             actual_values += y.tolist()
-            predicted_values += vil_logit.tolist()    
+            predicted_values += vil_logit.squeeze(-1).tolist()    
             loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
             writer.add_scalar('Val_loss', loss, j)
 
         correlation_here = np.corrcoef(np.array(actual_values), np.array(predicted_values))[0,1]
         correlation_values.append(correlation_here)
+        print(correlation_here)
 
         # Save a trained model
         model_to_save = (
