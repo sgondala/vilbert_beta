@@ -563,7 +563,8 @@ class CiderDataset(Dataset):
             segment_ids,
             co_attention_mask,
             image_id,
-            y
+            y,
+            caption_raw
         )
 
     def __len__(self):

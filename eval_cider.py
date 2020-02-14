@@ -178,6 +178,9 @@ def main():
     parser.add_argument(
         "--tsv_path", default='', type=str, help="1-2-3... training task separate by -"
     )
+    parser.add_argument(
+        "--out_path", default='', type=str, help="1-2-3... training task separate by -"
+    )
 
 
 
@@ -286,20 +289,34 @@ def main():
         actual_values = []
         predicted_values = []
         image_ids_list = []
+        captions_list = []
 
         model.eval()
         for batch in val_dataloader:
             i += 1
-            if not args.no_cuda:
-                batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
-            features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
+            #if not args.no_cuda:
+            #    batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
+            features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y, raw_captions = batch
+            #print(image_id)
+            #print(raw_captions)
+            #print(type(raw_captions))
+            captions_list.extend(raw_captions)
             _, vil_logit, _, _, _, _, _ = \
-                model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
+                model(captions.cuda(), features.cuda(), spatials.cuda(), segment_ids.cuda(), input_mask.cuda(), image_mask.cuda(), co_attention_mask.cuda())
             actual_values += y.tolist()
             predicted_values += vil_logit.squeeze(-1).tolist()
             image_ids_list += image_id.tolist()
         print("Model Name ", model_name)
         print("Values ", np.corrcoef(np.array(actual_values), np.array(predicted_values)))
+        final_dict = {}
+        final_dict['actual_values'] = actual_values
+        final_dict['predicted_values'] = predicted_values
+        final_dict['image_ids'] = image_ids_list
+        final_dict['captions'] = captions_list
+        if len(args.out_path) > 0:
+            json.dump(final_dict, open(args.out_path, 'w'))
+        else:
+            print(final_dict) 
 
 if __name__ == "__main__":
     main()
