@@ -20,8 +20,6 @@ import torch.nn as nn
 
 from pytorch_pretrained_bert.optimization import WarmupLinearSchedule
 
-# from parallel.parallel import DataParallelModel, DataParallelCriterion
-
 from vilbert.task_utils import LoadDatasets, LoadLosses, ForwardModelsTrain, ForwardModelsVal
 from vilbert.optimization import BertAdam, Adam, Adamax
 from torch.optim.lr_scheduler import LambdaLR, ReduceLROnPlateau
@@ -176,16 +174,20 @@ def main():
         "--compact", action="store_true", help="whether use compact vilbert model."
     )
     parser.add_argument(
-        "--captions_path", default='', type=str, help="1-2-3... training task separate by -"
+        "--captions_path", default='', type=str, help="Train captions"
     )
     parser.add_argument(
-        "--cider_path", default='', type=str, help="1-2-3... training task separate by -"
+        "--cider_path", default='', type=str, help="Train cider scores"
     )
     parser.add_argument(
-        "--tsv_path", default='', type=str, help="1-2-3... training task separate by -"
+        "--val_captions_path", default='', type=str, help="Val captions"
     )
-
-
+    parser.add_argument(
+        "--val_cider_path", default='', type=str, help="Val cider"
+    )
+    parser.add_argument(
+        "--tsv_path", default='', type=str, help="Path to locate acc, box, height, and width files"
+    )
 
     args = parser.parse_args()
     assert len(args.output_dir) > 0
@@ -219,7 +221,6 @@ def main():
         torch.cuda.set_device(args.local_rank)
         device = torch.device("cuda", args.local_rank)
         n_gpu = 1
-        # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
         torch.distributed.init_process_group(backend="nccl")
     
     logger.info(
@@ -250,29 +251,10 @@ def main():
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
     dataset = CiderDataset(args.captions_path, args.tsv_path, args.cider_path, tokenizer)
+    val_dataset = CiderDataset(args.val_captions_path, args.tsv_path, args.val_cider_path, tokenizer)
 
-    # dataset = CiderDataset('data/coco_caps_all_images_2_models.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv', 'data/coco_caps_all_images_2_models_cider_scores.json', tokenizer)
-
-    # dataset = CiderDataset('data/nocaps_captions.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv', 'data/nocaps_cider_scores.json', tokenizer)
-
-    length_of_data = len(dataset)
-    length_of_val = length_of_data // 10
-
-    train, val, test = random_split(dataset, [length_of_data - 2 * length_of_val, length_of_val, length_of_val])
-
-    # train, val, test = random_split(dataset, [100, 100, 800])
-
-    train_dataloader = DataLoader(train, batch_size=args.batch_size, shuffle=True)
-    val_dataloader = DataLoader(val, batch_size=args.batch_size, shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=args.batch_size, shuffle=False)
- 
-    # task_batch_size, task_num_iters, task_ids, task_datasets_train, task_datasets_val, \
-    #         task_dataloader_train, task_dataloader_val = LoadDatasets(args, task_cfg, args.tasks.split('-'))
-
-    # tbLogger = utils.tbLogger(timeStamp, savePath, task_names, task_ids, task_num_iters, args.gradient_accumulation_steps)
-
-    # if n_gpu > 0:
-        # torch.cuda.manual_seed_all(args.seed)
+    train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -347,7 +329,7 @@ def main():
         print(len(list(model.named_parameters())), len(optimizer_grouped_parameters))
 
     num_train_optimization_steps = (
-        (200000//256) * args.num_train_epochs
+        (len(dataset) // args.batch_size) * args.num_train_epochs
     )
 
     if args.optimizer == 'BertAdam':
@@ -412,8 +394,7 @@ def main():
             optimizer.zero_grad()
 
         model.eval()
-        # when run evaluate, we run each task sequentially. 
-
+        
         actual_values = []
         predicted_values = []
         for batch in val_dataloader:
