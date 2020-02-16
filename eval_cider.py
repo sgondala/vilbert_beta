@@ -246,7 +246,7 @@ def main():
             print(config, file=f)
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
-    dataset = CiderDataset(args.captions_path, args.tsv_path, args.cider_path, tokenizer)
+    dataset = CiderDataset(args.captions_path, args.tsv_path, args.cider_path, tokenizer, is_eval = True)
 
     '''
     length_of_data = len(dataset)

@@ -405,10 +405,10 @@ class HybridLoader:
         self.id2dict = {}
         cached_file = filepath[:-4] + "__" + ext +"__cached"
 
-        if ext == 'acc': #Very temporary bad hack
-            cached_file = cached_file + '.pkl'
-            self.id2dict = pickle.load(open(cached_file, 'rb'), encoding="latin1")
-            return
+        # if ext == 'acc': # Very temporary bad hack
+        #     cached_file = cached_file + '.pkl'
+        #     self.id2dict = pickle.load(open(cached_file, 'rb'), encoding="latin1")
+        #     return
 
         if os.path.exists(cached_file):
             print("Loading saved dict ", cached_file)
@@ -427,6 +427,7 @@ class CiderDataset(Dataset):
         images_path: str,
         cider_values_path: str,
         tokenizer: BertTokenizer,
+        is_eval: bool = False,
         padding_index: int = 0,
         max_seq_length: int = 20,
         max_region_num: int = 37,
@@ -446,6 +447,7 @@ class CiderDataset(Dataset):
         self._padding_index = padding_index
         self._max_region_num = max_region_num
         self._max_seq_length = max_seq_length
+        self._is_eval = is_eval
 
     def tokenize(self, caption):
         """Tokenizes the captions.
@@ -553,19 +555,10 @@ class CiderDataset(Dataset):
         co_attention_mask = torch.zeros((self._max_region_num, self._max_seq_length))
         target = 0
 
-        return (
-            features,
-            spatials,
-            image_mask,
-            token,
-            target,
-            input_mask,
-            segment_ids,
-            co_attention_mask,
-            image_id,
-            y,
-            caption_raw
-        )
+        if self._is_eval:
+            return (features, spatials, image_mask, token, target, input_mask, segment_ids, co_attention_mask, image_id, y, caption_raw)
+        else:
+            return (features, spatials, image_mask, token, target, input_mask, segment_ids, co_attention_mask, image_id, y)
 
     def __len__(self):
         return len(self.captions)
