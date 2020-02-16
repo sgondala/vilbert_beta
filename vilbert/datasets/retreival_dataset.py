@@ -415,7 +415,7 @@ class HybridLoader:
             self.id2dict = torch.load(cached_file)
             return 
 
-        assert False, "Saved models not found"
+        assert False, "Saved models not found " + cached_file
 
     def get(self, key):
         return self.id2dict[int(key)]
