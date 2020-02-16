@@ -268,7 +268,7 @@ def main():
     length_of_coco_val = length_of_coco_data // 10
 
     coco_train, coco_val = random_split(coco_dataset, [length_of_coco_data - length_of_coco_val, length_of_coco_val])
-    nocaps_train, nocaps_val = random_split(nocaps_dataset, [2000, 500]) # Nocaps dataset is of size 2500
+    nocaps_train, nocaps_val = random_split(nocaps_dataset, [2000, 400]) # Nocaps dataset is of size 2500
     
     coco_train_dataloader = DataLoader(coco_train, batch_size=args.batch_size, shuffle=True)
     coco_val_dataloader = DataLoader(coco_val, batch_size=args.batch_size, shuffle=True)
