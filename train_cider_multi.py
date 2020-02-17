@@ -198,6 +198,19 @@ def main():
     parser.add_argument(
         "--ratio", default=3, type=int, help="Number of epochs of coco vs nocaps"
     )
+    parser.add_argument(
+        "--val_captions_path", default='', type=str, help="Val captions"
+    )
+    parser.add_argument(
+        "--val_cider_path", default='', type=str, help="Val cider"
+    )
+
+    parser.add_argument(
+        "--val_captions_path_2", default='', type=str, help="Val captions"
+    )
+    parser.add_argument(
+        "--val_cider_path_2", default='', type=str, help="Val cider"
+    )
 
     args = parser.parse_args()
     assert len(args.output_dir) > 0
@@ -261,20 +274,18 @@ def main():
             print(config, file=f)
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
+
     coco_dataset = CiderDataset(args.captions_path, args.tsv_path, args.cider_path, tokenizer)
+    coco_val_dataset = CiderDataset(args.val_captions_path, args.tsv_path, args.val_cider_path, tokenizer)
+    
     nocaps_dataset = CiderDataset(args.captions_path_2, args.tsv_path_2, args.cider_path_2, tokenizer)
-
-    length_of_coco_data = len(coco_dataset)
-    length_of_coco_val = length_of_coco_data // 10
-
-    coco_train, coco_val = random_split(coco_dataset, [length_of_coco_data - length_of_coco_val, length_of_coco_val])
-    nocaps_train, nocaps_val = random_split(nocaps_dataset, [2000, 400]) # Nocaps dataset is of size 2500
+    nocaps_val_dataset = CiderDataset(args.val_captions_path_2, args.tsv_path_2, args.val_cider_path_2, tokenizer)
     
-    coco_train_dataloader = DataLoader(coco_train, batch_size=args.batch_size, shuffle=True)
-    coco_val_dataloader = DataLoader(coco_val, batch_size=args.batch_size, shuffle=True)
+    coco_train_dataloader = DataLoader(coco_dataset, batch_size=args.batch_size, shuffle=True)
+    nocaps_train_dataloader = DataLoader(nocaps_dataset, batch_size=args.batch_size, shuffle=True)
     
-    nocaps_train_dataloader = DataLoader(nocaps_train, batch_size=args.batch_size, shuffle=True)
-    nocaps_val_dataloader = DataLoader(nocaps_val, batch_size=args.batch_size, shuffle=True)
+    coco_val_dataloader = DataLoader(coco_val_dataset, batch_size=args.batch_size, shuffle=False)
+    nocaps_val_dataloader = DataLoader(nocaps_val_dataset, batch_size=args.batch_size, shuffle=False)
     
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)

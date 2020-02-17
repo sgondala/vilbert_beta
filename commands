@@ -35,6 +35,9 @@ Temp train to test
 
 python train_cider_multi.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 20 --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --captions_path_2 data/nocaps_captions.json --cider_path_2 data/nocaps_cider_scores.json --tsv_path_2 /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 20
 
+Combined train with another val dataset 
+
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/combined_coco_and_nocaps_no_data_leak_feb_16/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 20 --captions_path data/combined_coco_and_nocaps_all_clean_train.json --cider_path data/combined_coco_and_nocaps_all_clean_cider_train.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_plus_coco_features_torch_out.tsv --val_captions_path data/coco_test_captions_4000.json --val_cider_path data/coco_test_cider_4000.json --batch_size 20
 
 # dataset = CiderDataset('data/coco_caps_all_images_2_models.json', '/srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv', 'data/coco_caps_all_images_2_models_cider_scores.json', tokenizer)
 
