@@ -6,10 +6,16 @@ check = 'background '* 99 + 'background'
 
 with open('results/nocaps_dict_80_corr.json') as caption_file:
     data = json.load(caption_file)
-    image_ids = data[]
+    
+    image_ids = data['image_ids']
+    actual_cider_values = data['actual_values']
+    predicted_cider_values = data['predicted_values']
+    captions = data['captions']
+
     table = "<table width='100%' border='0' cellpadding='10' cellspacing='0'>"
+    
     tr = ""
-    for i in range(0, 1000, 2):
+    for i in range(0, 500, 2):
         td = ""
         tr += "<tr>"
         for j in range(i, i + 2):

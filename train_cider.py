@@ -189,6 +189,16 @@ def main():
         "--tsv_path", default='', type=str, help="Path to locate acc, box, height, and width files"
     )
 
+    parser.add_argument(
+        "--val_captions_path_2", default='', type=str, help="Val captions"
+    )
+    parser.add_argument(
+        "--val_cider_path_2", default='', type=str, help="Val cider"
+    )
+    parser.add_argument(
+        "--tsv_path_2", default='', type=str, help="tsv path file (We don't use this, just that acc is in same place) for nocaps"
+    )
+
     args = parser.parse_args()
     assert len(args.output_dir) > 0
 
@@ -251,10 +261,12 @@ def main():
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
     dataset = CiderDataset(args.captions_path, args.tsv_path, args.cider_path, tokenizer)
-    val_dataset = CiderDataset(args.val_captions_path, args.tsv_path, args.val_cider_path, tokenizer)
+    coco_val_dataset = CiderDataset(args.val_captions_path, args.tsv_path, args.val_cider_path, tokenizer)
+    nocaps_val_dataset = CiderDataset(args.val_captions_path_2, args.tsv_path_2, args.val_cider_path_2, tokenizer)
 
     train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
+    coco_val_dataloader = DataLoader(coco_val_dataset, batch_size=args.batch_size, shuffle=False)
+    nocaps_val_dataloader = DataLoader(nocaps_val_dataset, batch_size=args.batch_size, shuffle=False)
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -375,7 +387,9 @@ def main():
     i = 0
     j = 0
 
-    correlation_values = []
+    coco_correlation_values = []
+    nocaps_correlation_values = []
+
     # initialize the data iteration.
     for epochId in tqdm(range(args.num_train_epochs), desc="Epoch"):
         model.train()
@@ -395,22 +409,39 @@ def main():
 
         model.eval()
         
-        actual_values = []
-        predicted_values = []
-        for batch in val_dataloader:
+        coco_actual_values = []
+        coco_predicted_values = []
+        for batch in coco_val_dataloader:
             j += 1
             batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
             features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
             _, vil_logit, _, _, _, _, _ = \
                 model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
-            actual_values += y.tolist()
-            predicted_values += vil_logit.squeeze(-1).tolist()    
+            coco_actual_values += y.tolist()
+            coco_predicted_values += vil_logit.squeeze(-1).tolist()    
             loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
             writer.add_scalar('Val_loss', loss, j)
 
-        correlation_here = np.corrcoef(np.array(actual_values), np.array(predicted_values))[0,1]
-        correlation_values.append(correlation_here)
-        print(correlation_here)
+        correlation_here = np.corrcoef(np.array(coco_actual_values), np.array(coco_predicted_values))[0,1]
+        coco_correlation_values.append(correlation_here)
+        print("COCO correlation: ", correlation_here)
+
+        nocaps_actual_values = []
+        nocaps_predicted_values = []
+        for batch in nocaps_val_dataloader:
+            j += 1
+            batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
+            features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
+            _, vil_logit, _, _, _, _, _ = \
+                model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
+            nocaps_actual_values += y.tolist()
+            nocaps_predicted_values += vil_logit.squeeze(-1).tolist()    
+            loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
+            writer.add_scalar('Val_loss', loss, j)
+
+        correlation_here = np.corrcoef(np.array(nocaps_actual_values), np.array(nocaps_predicted_values))[0,1]
+        nocaps_correlation_values.append(correlation_here)
+        print("Nocaps correlation: ", correlation_here)
 
         # Save a trained model
         model_to_save = (
@@ -424,7 +455,8 @@ def main():
 
         lr_scheduler.step()
     
-    print(correlation_values)
+    print("COCO correlations: ", coco_correlation_values)
+    print("Nocaps correlations: ", nocaps_correlation_values)
 
 if __name__ == "__main__":
     main()

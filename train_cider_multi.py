@@ -355,7 +355,7 @@ def main():
         print(len(list(model.named_parameters())), len(optimizer_grouped_parameters))
 
     num_train_optimization_steps = (
-        (length_of_coco_data // args.batch_size) * args.num_train_epochs
+        (len(coco_dataset) // args.batch_size) * args.num_train_epochs
     )
 
     if args.optimizer == 'BertAdam':
