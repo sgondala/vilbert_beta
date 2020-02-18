@@ -485,7 +485,8 @@ def main():
         torch.save(model_to_save.state_dict(), output_model_file)
 
         lr_scheduler.step()
-    
+   
+    print(args.ratio) 
     print("coco correlations ", coco_correlation_values)
     print("nocaps correlations ", nocaps_correlation_values)
 

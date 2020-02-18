@@ -439,7 +439,11 @@ class CiderDataset(Dataset):
         self.image_height = HybridLoader(images_path, 'height')
         self.image_width = HybridLoader(images_path, 'width')
         self.captions = np.array(json.load(open(captions_path, 'r'))) # List of {image_id:, caption:}
-        self.cider_vals = np.array(json.load(open(cider_values_path, 'r'))['CIDEr'])
+        self.cider_vals = json.load(open(cider_values_path, 'r'))
+        if isinstance(self.cider_vals, list):
+            self.cider_vals = np.array(self.cider_vals)
+        else:
+            self.cider_vals = np.array(self.cider_vals['CIDEr'])
 
         self._tokenizer = tokenizer
         self.num_labels = 1
