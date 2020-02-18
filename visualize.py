@@ -14,7 +14,7 @@ for image_metadata in nocaps_metadata['images']:
 def get_image_url_from_open_id(open_images_id):
     return 'https://s3.amazonaws.com/nocaps/val/' + open_images_id + '.jpg'
 
-with open('results/nocaps_dict_80_corr.json') as caption_file:
+with open('results/nocaps_corr_both_clean_with_nocaps_df_ratio_5.json') as caption_file:
     data = json.load(caption_file)
     image_ids = data['image_ids']
     actual_cider_values = data['actual_values']
