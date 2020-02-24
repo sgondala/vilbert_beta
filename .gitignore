@@ -4,3 +4,5 @@ models/
 checkpoints/
 pretrained_weights/
 *pycache*
+*tsv
+*.p
