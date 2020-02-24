@@ -4,3 +4,4 @@ models/
 checkpoints/
 pretrained_weights/
 *pycache*
+*ipynb*
