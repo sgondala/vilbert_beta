@@ -306,8 +306,12 @@ def main():
             actual_values += y.tolist()
             predicted_values += vil_logit.squeeze(-1).tolist()
             image_ids_list += image_id.tolist()
+
         print("Model Name ", model_name)
         print("Values ", np.corrcoef(np.array(actual_values), np.array(predicted_values)))
+        print("Actual mean", np.array(actual_values).mean())
+        print("Predicted mean", np.array(predicted_values).mean())
+ 
         final_dict = {}
         final_dict['actual_values'] = actual_values
         final_dict['predicted_values'] = predicted_values
@@ -315,8 +319,6 @@ def main():
         final_dict['captions'] = captions_list
         if len(args.out_path) > 0:
             json.dump(final_dict, open(args.out_path, 'w'))
-        else:
-            print(final_dict) 
 
 if __name__ == "__main__":
     main()

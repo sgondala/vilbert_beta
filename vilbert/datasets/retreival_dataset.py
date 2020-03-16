@@ -431,6 +431,7 @@ class CiderDataset(Dataset):
         padding_index: int = 0,
         max_seq_length: int = 20,
         max_region_num: int = 37,
+        classification_threshold: float = -1
     ):
         # Cider values are sequential. Get index i in cider_vals, same index in captions to get image_id
 
@@ -452,6 +453,7 @@ class CiderDataset(Dataset):
         self._max_region_num = max_region_num
         self._max_seq_length = max_seq_length
         self._is_eval = is_eval
+        self.classification_threshold = classification_threshold
 
     def tokenize(self, caption):
         """Tokenizes the captions.
@@ -523,6 +525,9 @@ class CiderDataset(Dataset):
     def __getitem__(self, index):
 
         y = self.cider_vals[index]
+        if self.classification_threshold != -1:
+            y = 0 if y < self.classification_threshold else 1
+        
         caption_entry = self.captions[index]
         
         image_id = caption_entry['image_id']
