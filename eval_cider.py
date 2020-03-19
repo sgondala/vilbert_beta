@@ -182,8 +182,6 @@ def main():
         "--out_path", default='', type=str, help="1-2-3... training task separate by -"
     )
 
-
-
     args = parser.parse_args()
     assert len(args.output_dir) > 0
 
@@ -263,14 +261,12 @@ def main():
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
-    # model_list = ['checkpoints/partial_coco/model-' + str(i) + '.pth' for i in range(10)]
     model_list = [1]
 
     for model_name in model_list:
         model = VILBertForVLTasks.from_pretrained(
             args.from_pretrained, config, num_labels=1, default_gpu=default_gpu
             )
-# model = VILBertForVLTasks.from_pretrained(model_name, config, num_labels=1, default_gpu=default_gpu)
         model.to(device)
         if args.local_rank != -1:
             try:

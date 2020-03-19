@@ -35,6 +35,7 @@ from pytorch_pretrained_bert.tokenization import BertTokenizer
 from torch.utils.data import DataLoader
 
 from sklearn.metrics import f1_score
+from sklearn.metrics import precision_recall_fscore_support
 
 # Reproducibility
 np.random.seed(42)
@@ -191,25 +192,27 @@ def main():
         "--tsv_path", default='', type=str, help="Path to locate acc, box, height, and width files"
     )
 
-    parser.add_argument(
-        "--val_captions_path_2", default='', type=str, help="Val captions"
-    )
-    parser.add_argument(
-        "--val_cider_path_2", default='', type=str, help="Val cider"
-    )
-    parser.add_argument(
-        "--tsv_path_2", default='', type=str, help="tsv path file (We don't use this, just that acc is in same place) for nocaps"
-    )
-
     # parser.add_argument(
-    #     '--classification', action="store_true"
+    #     "--val_captions_path_2", default='', type=str, help="Val captions"
     # )
+    # parser.add_argument(
+    #     "--val_cider_path_2", default='', type=str, help="Val cider"
+    # )
+    # parser.add_argument(
+    #     "--tsv_path_2", default='', type=str, help="tsv path file (We don't use this, just that acc is in same place) for nocaps"
+    # )
+
     parser.add_argument(
         '--classification_threshold', type=float, default=-1
+    )
+    parser.add_argument(
+        "--out_path", default='', type=str, help="1-2-3... training task separate by -"
     )
 
     args = parser.parse_args()
     assert len(args.output_dir) > 0
+    if args.classification_threshold != -1:
+        assert len(args.out_path) > 0
 
     with open('vlbert_tasks.yml', 'r') as f:
         task_cfg = edict(yaml.load(f))
@@ -401,14 +404,14 @@ def main():
     i = 0
     j = 0
 
-    # coco_correlation_values = []
-    # nocaps_correlation_values = []
-
     sigmoid = nn.Sigmoid()
+
+    final_prec_recall_scores = {}
     # initialize the data iteration.
-    for epochId in tqdm(range(args.num_train_epochs), desc="Epoch"):
+    # for epochId in tqdm(range(args.num_train_epochs), desc="Epoch"):
+    for epochId in range(args.num_train_epochs):
         model.train()
-        for batch in train_dataloader:
+        for batch in tqdm(train_dataloader):
             i += 1
             if not args.no_cuda:
                 batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
@@ -418,8 +421,6 @@ def main():
             if args.classification_threshold == -1:
                 loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
             else:
-                print("In train")
-                print(sigmoid(vil_logit.squeeze(-1)))
                 loss = criterion(sigmoid(vil_logit.squeeze(-1)), y.to(device).float())
             writer.add_scalar('Train_loss', loss, i)
             loss.backward()
@@ -444,30 +445,13 @@ def main():
             else:
                 loss = criterion(sigmoid(vil_logit.squeeze(-1)), y.to(device).float())
                 coco_predicted_values += sigmoid(vil_logit.squeeze(-1)).tolist()
-            # loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
             writer.add_scalar('Val_loss', loss, j)
 
-        # correlation_here = np.corrcoef(np.array(coco_actual_values), np.array(coco_predicted_values))[0,1]
-        # coco_correlation_values.append(correlation_here)
-        # print("COCO correlation: ", correlation_here)
-        print_f1_scores(coco_predicted_values, coco_actual_values)
-
-        # nocaps_actual_values = []
-        # nocaps_predicted_values = []
-        # for batch in nocaps_val_dataloader:
-        #     j += 1
-        #     batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
-        #     features, spatials, image_mask, captions, _, input_mask, segment_ids, co_attention_mask, image_id, y = batch
-        #     _, vil_logit, _, _, _, _, _ = \
-        #         model(captions, features, spatials, segment_ids, input_mask, image_mask, co_attention_mask)
-        #     nocaps_actual_values += y.tolist()
-        #     nocaps_predicted_values += vil_logit.squeeze(-1).tolist()    
-        #     loss = torch.sqrt(criterion(vil_logit.squeeze(-1), y.to(device)))
-        #     writer.add_scalar('Val_loss', loss, j)
-
-        # correlation_here = np.corrcoef(np.array(nocaps_actual_values), np.array(nocaps_predicted_values))[0,1]
-        # nocaps_correlation_values.append(correlation_here)
-        # print("Nocaps correlation: ", correlation_here)
+        if args.classification_threshold != -1:
+            prec_recall_score = print_f1_scores(coco_predicted_values, coco_actual_values)
+            final_prec_recall_scores[i] = prec_recall_score
+        else:
+            print("Correlation is ", np.corrcoef(coco_predicted_values, coco_actual_values))
 
         # Save a trained model
         model_to_save = (
@@ -481,13 +465,17 @@ def main():
 
         lr_scheduler.step()
     
-    # print("COCO correlations: ", coco_correlation_values)
-    # print("Nocaps correlations: ", nocaps_correlation_values)
+    if len(args.out_path) > 0:
+        json.dump(final_prec_recall_scores, open(args.out_path, 'w'))
 
 def print_f1_scores(predicted_scores, actual_scores):
     pred_scores_numpy = np.array(predicted_scores)
-    for threshold_value in [0.2, 0.4, 0.5, 0.6, 0.8]:
-        print("F1 score ", threshold_value, f1_score(pred_scores_numpy < threshold_value, actual_scores))
+    all_prec_recall_scores = []
+    for threshold_value in np.arange(0.1, 1, 0.1):
+        prec_recall_scores = precision_recall_fscore_support(pred_scores_numpy < threshold_value, actual_scores, average='weighted')
+        print("Pres_recall_scores ", threshold_value, prec_recall_scores)
+        all_prec_recall_scores.append(prec_recall_scores)
+    return all_prec_recall_scores
 
 if __name__ == "__main__":
     main()

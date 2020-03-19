@@ -30,8 +30,7 @@ Train on both nocaps 2.5k
 
 python train_cider_multi.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/partial_coco_and_nocaps_3_feb_13_ratio_3/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 20 --captions_path data/coco_generated_captions.json --cider_path data/coco_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv --captions_path_2 data/nocaps_train_data_on_3_checkpoints_2500.json --cider_path_2 data/nocaps_cider_scores_on_3_checkpoints_2500.json --tsv_path_2 /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 20 --ratio 3
 
-Temp train to test 
-
+Temp train to test
 
 python train_cider_multi.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 20 --captions_path data/nocaps_captions.json --cider_path data/nocaps_cider_scores.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --captions_path_2 data/nocaps_captions.json --cider_path_2 data/nocaps_cider_scores.json --tsv_path_2 /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 20
 
@@ -46,10 +45,21 @@ python train_cider_multi.py --from_pretrained pretrained_weights/pytorch_model_9
 
 Classification model
 
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_minus_8_classification_model_thres_1/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 10 --captions_path data/coco_minus_8/coco_train_captions_after_8_rm_without_random.json --cider_path data/coco_minus_8/coco_train_cider_after_8_rm_without_random.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv --batch_size 50 --val_captions_path data/coco_minus_8/coco_test_captions_after_8_rm_without_random.json --val_cider_path data/coco_minus_8/coco_test_cider_after_8_rm_without_random.json --classification_threshold 1 --out_path results/
 
-python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_minus_8_classification_model/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 10 --captions_path data/coco_minus_8/coco_train_captions_after_8_rm_without_random.json --cider_path data/coco_minus_8/coco_train_cider_after_8_rm_without_random.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv --batch_size 20 --val_captions_path data/coco_minus_8/coco_test_captions_after_8_rm_without_random.json --val_cider_path data/coco_minus_8/coco_test_cider_after_8_rm_without_random.json --classification_threshold 1
+Classification model on new data
 
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_minus_8_thres_0_8_mar_18/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 5 --captions_path data/train_captions_final_mar_18.json --cider_path data/train_captions_final_mar_18_cider.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv --batch_size 50 --val_captions_path data/test_captions_final_mar_18.json --val_cider_path data/test_captions_final_mar_18_cider.json --classification_threshold 0.8 --out_path results/coco_minus_8_thres_0_8_mar_18_train_output.json
 
 Nocaps data for testing
 
 python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/temp/ --config_file config/bert_base_6layer_6conect.json  --captions_path data/nocaps_data/nocaps_train_data_cleaned_2400.json --cider_path data/nocaps_data/nocaps_cider_train_data_cleaned_2400_nocaps_df.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/nocaps_val_vg_detector_features_adaptiv.tsv --batch_size 100 --num_train_epochs 3 --val_captions_path data/nocaps_data/nocaps_test_data_cleaned_600.json --val_cider_path data/nocaps_data/nocaps_cider_test_data_cleaned_600_nocaps_df.json --classification_threshold 1
+
+
+Eval on coco 
+
+python eval_cider.py --output_dir checkpoints/temp/ --from_pretrained checkpoints/coco_minus_8_classification_model_thres_1/pytorch_model_3.bin --config_file config/bert_base_6layer_6conect.json --captions_path data/coco_minus_8/coco_test_captions_after_8_rm_without_random.json --cider_path data/coco_minus_8/coco_test_cider_after_8_rm_without_random.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv --out_path results/coco_rm_8_thres_1_model_3_older_test_raw.json
+
+Train without classification
+
+python train_cider.py --from_pretrained pretrained_weights/pytorch_model_9.bin --output_dir checkpoints/coco_minus_8_mar_18_data/ --config_file config/bert_base_6layer_6conect.json --num_train_epochs 10 --captions_path data/train_captions_final_mar_18.json --cider_path data/train_captions_final_mar_18_cider.json --tsv_path /srv/share2/sgondala/tmp/trainval_36/python3_stuff/trainval_resnet101_faster_rcnn_genome_36.tsv --batch_size 50 --val_captions_path data/test_captions_final_mar_18.json --val_cider_path data/test_captions_final_mar_18_cider.json
