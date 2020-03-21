@@ -1,0 +1,12 @@
+out
+runs/
+models/
+checkpoints/
+pretrained_weights/
+*pycache*
+*tsv
+*.p
+*ipynb*
+*json
+data/
+history.txt
